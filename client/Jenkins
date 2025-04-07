@@ -1,68 +1,67 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        NODE_ENV = 'production'
+  tools {
+    nodejs 'NodeJS 18'
+  }
+
+  environment {
+    CI = 'true'
+    DOCKERHUB_USER = credentials('dockerhub-username')  // 🔐 Add these in Jenkins credentials
+    DOCKERHUB_PASS = credentials('dockerhub-password')
+    IMAGE_NAME = 'yourdockerusername/vite-react-app'
+  }
+
+  stages {
+    stage('Checkout Code') {
+      steps {
+        checkout scm
+      }
     }
 
-    tools {
-        nodejs 'NodeJS 18'  // Make sure this is set in Jenkins global tools
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm ci'
+      }
     }
 
-    stages {
-        stage('Checkout Code') {
-            steps {
-                git 'https://github.com/your-username/your-vite-react-ts-app.git'
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm ci'
-            }
-        }
-
-        stage('Lint Code') {
-            steps {
-                sh 'npx eslint . --ext .ts,.tsx'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
-        stage('Build App') {
-            steps {
-                sh 'npm run build'
-            }
-        }
-
-        // Optional: Docker Build & Push
-        stage('Dockerize') {
-            when {
-                expression { fileExists('Dockerfile') }
-            }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker build -t $DOCKER_USER/vite-react-ts-app:latest .
-                        docker push $DOCKER_USER/vite-react-ts-app:latest
-                    """
-                }
-            }
-        }
+    stage('Lint') {
+      steps {
+        sh 'npm run lint'
+      }
     }
 
-    post {
-        success {
-            echo '✅ Build successful!'
-        }
-        failure {
-            echo '❌ Build failed.'
-        }
+    stage('Test') {
+      steps {
+        sh 'npm test -- --watchAll=false'
+      }
     }
+
+    stage('Build App') {
+      steps {
+        sh 'npm run build'
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        script {
+          docker.withRegistry('', 'dockerhub-creds') {
+            def image = docker.build("${env.IMAGE_NAME}:${env.BUILD_NUMBER}")
+            image.push()
+            image.push('latest')
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo '✅ Docker image built and pushed successfully!'
+    }
+    failure {
+      echo '❌ Pipeline failed.'
+    }
+  }
 }
