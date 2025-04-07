@@ -1,12 +1,25 @@
 pipeline {
-  agent any
+  agent {
+    docker {
+      image 'node:18-alpine'
+      args '-u root' // to install deps safely if needed
+    }
+  }
+
+  options {
+    skipDefaultCheckout(true)
+  }
 
   environment {
     CI = 'true'
   }
 
+  triggers {
+    pollSCM('* * * * *') // ⏱ poll every minute (replace with webhook for better performance)
+  }
+
   stages {
-    stage('Checkout Code') {
+    stage('Checkout Source Code') {
       steps {
         checkout scm
       }
@@ -18,22 +31,19 @@ pipeline {
       }
     }
 
-    stage('Lint') {
+    stage('Run Custom Pipeline Script') {
       steps {
-        sh 'npm run lint'
+        sh 'npm run pipeline'
       }
     }
+  }
 
-    stage('Test') {
-      steps {
-        sh 'npm test -- --watchAll=false'
-      }
+  post {
+    success {
+      echo '✅ Build successful!'
     }
-
-    stage('Build') {
-      steps {
-        sh 'npm run build'
-      }
+    failure {
+      echo '❌ Build failed. Check the logs.'
     }
   }
 }
