@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        NODE_ENV = 'production'
+    }
+
+    tools {
+        nodejs 'NodeJS 18'  // Make sure this is set in Jenkins global tools
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/your-username/your-vite-react-ts-app.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+            }
+        }
+
+        stage('Lint Code') {
+            steps {
+                sh 'npx eslint . --ext .ts,.tsx'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'npm test'
+            }
+        }
+
+        stage('Build App') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
+        // Optional: Docker Build & Push
+        stage('Dockerize') {
+            when {
+                expression { fileExists('Dockerfile') }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker build -t $DOCKER_USER/vite-react-ts-app:latest .
+                        docker push $DOCKER_USER/vite-react-ts-app:latest
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Build successful!'
+        }
+        failure {
+            echo '❌ Build failed.'
+        }
+    }
+}
