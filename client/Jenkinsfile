@@ -1,15 +1,8 @@
 pipeline {
   agent any
 
-  tools {
-    nodejs 'NodeJS 18'
-  }
-
   environment {
     CI = 'true'
-    DOCKERHUB_USER = credentials('dockerhub-username')  // 🔐 Add these in Jenkins credentials
-    DOCKERHUB_PASS = credentials('dockerhub-password')
-    IMAGE_NAME = 'yourdockerusername/vite-react-app'
   }
 
   stages {
@@ -37,31 +30,10 @@ pipeline {
       }
     }
 
-    stage('Build App') {
+    stage('Build') {
       steps {
         sh 'npm run build'
       }
-    }
-
-    stage('Build Docker Image') {
-      steps {
-        script {
-          docker.withRegistry('', 'dockerhub-creds') {
-            def image = docker.build("${env.IMAGE_NAME}:${env.BUILD_NUMBER}")
-            image.push()
-            image.push('latest')
-          }
-        }
-      }
-    }
-  }
-
-  post {
-    success {
-      echo '✅ Docker image built and pushed successfully!'
-    }
-    failure {
-      echo '❌ Pipeline failed.'
     }
   }
 }
