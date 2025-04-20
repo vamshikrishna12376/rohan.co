@@ -10,12 +10,11 @@ pipeline {
     }
 
     stages {
-        stage('Clone Repo') {
-            steps {
-                git 'https://github.com/vamshikrishna12376/rohan.co.git'  
-            }
-        }
-
+       stage('Clone Repo') {
+    steps {
+        git branch: 'main', url: 'https://github.com/vamshikrishna12376/rohan.co.git'
+    }
+}
         stage('Install Dependencies') {
             steps {
                 sh 'npm ci || npm install'
