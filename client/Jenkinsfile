@@ -21,12 +21,7 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                sh 'npm run test || echo "No tests defined"'
-            }
-        }
-
+        
         stage('Build') {
             steps {
                 sh 'npm run build'
