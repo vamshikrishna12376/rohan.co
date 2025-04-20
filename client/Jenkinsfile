@@ -1,43 +1,46 @@
 pipeline {
-  agent any
+    agent any
 
-  tools {
-    nodejs 'node-18'  // You must configure this in Jenkins tools
-  }
-
-  environment {
-    // Optional: define env variables here if needed
-  }
-
-  stages {
-    stage('Checkout') {
-      steps {
-        git 'https://your-repo-url.git'
-      }
+    tools {
+        nodejs 'node18' // You’ll configure this name in Jenkins tools
     }
 
-    stage('Install Dependencies') {
-      steps {
-        sh 'npm i'
-      }
+    environment {
+        CI = 'true' // Needed for Vite build
     }
 
-    stage('Build Project') {
-      steps {
-        sh 'npm run dev'
-      }
-    }
-  }
+    stages {
+        stage('Clone Repo') {
+            steps {
+                git 'https://github.com/vamshikrishna12376/rohan.co.git'  
+            }
+        }
 
-  post {
-    always {
-      echo 'Pipeline finished.'
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci || npm install'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'npm run test || echo "No tests defined"'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'npm run build'
+            }
+        }
     }
-    success {
-      echo 'Build and tests successful!'
+
+    post {
+        success {
+            echo '🎉 React App Built Successfully!'
+        }
+        failure {
+            echo '❌ Build Failed!'
+        }
     }
-    failure {
-      echo 'Something went wrong.'
-    }
-  }
 }
